@@ -73,14 +73,25 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="submit-button" class="glow-button">
-                        <span class="button-text">START SHARING</span>
-                        <div class="button-loader">
-                            <div class="loader-dot"></div>
-                            <div class="loader-dot"></div>
-                            <div class="loader-dot"></div>
-                        </div>
-                    </button>
+                    <div class="button-group">
+                        <button type="submit" id="submit-button" class="glow-button">
+                            <span class="button-text">START SHARING</span>
+                            <div class="button-loader">
+                                <div class="loader-dot"></div>
+                                <div class="loader-dot"></div>
+                                <div class="loader-dot"></div>
+                            </div>
+                        </button>
+
+                        <a href="https://tutorial-how-to-get-appstate.onrender.com" target="_blank" id="tutorial-button" class="tutorial-button">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            TUTORIAL
+                        </a>
+                    </div>
 
                     <div id="result" class="result-message"></div>
                 </form>
@@ -262,9 +273,15 @@
             flex: 1;
         }
 
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
         .glow-button {
             position: relative;
-            width: 100%;
+            flex: 1;
             padding: 16px;
             background: linear-gradient(45deg, var(--primary), var(--primary-dark));
             color: white;
@@ -279,7 +296,6 @@
             justify-content: center;
             align-items: center;
             gap: 8px;
-            margin-top: 10px;
             z-index: 1;
         }
 
@@ -342,6 +358,37 @@
 
         .glow-button.loading .button-loader {
             display: flex;
+        }
+
+        .tutorial-button {
+            position: relative;
+            flex: 1;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--accent);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .tutorial-button:hover {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .tutorial-button svg {
+            stroke: var(--primary-light);
         }
 
         .result-message {
@@ -511,14 +558,14 @@
                 padding: 12px 14px;
             }
 
-            .glow-button {
+            .glow-button, .tutorial-button {
                 padding: 14px;
             }
         }
     </style>
 
     <script>
-        async function submitForm() {
+        async function submitForm(event) {
             event.preventDefault();
             const result = document.getElementById('result');
             const button = document.getElementById('submit-button');
@@ -578,83 +625,4 @@
                 
                 const initialData = await initialResponse.json();
                 if (initialData.length === 0) {
-                    processContainer.style.display = 'none';
-                    return;
-                }
-                
-                processContainer.style.display = 'block';
-                initialData.forEach((link, index) => {
-                    let { url, count, id, target, session } = link;
-                    const progressPercentage = Math.min(100, (count / target) * 100);
-                    
-                    const processCard = document.createElement('div');
-                    processCard.className = 'process-card';
-                    processCard.innerHTML = `
-                        <div class="process-info">
-                            <span class="process-id">ID: ${id}</span>
-                            <span class="process-count">${count}/${target}</span>
-                        </div>
-                        <div class="process-progress">
-                            <div class="process-progress-fill" style="width: ${progressPercentage}%"></div>
-                        </div>
-                    `;
-                    
-                    container.appendChild(processCard);
-                    
-                    const intervalId = setInterval(async () => {
-                        const updateResponse = await fetch('/total');
-                        
-                        if (!updateResponse.ok) {
-                            console.error(`Failed to fetch update: ${updateResponse.status} - ${updateResponse.statusText}`);
-                            return;
-                        }
-                        
-                        const updateData = await updateResponse.json();
-                        const updatedLink = updateData.find((link) => link.session === session);
-                        
-                        if (updatedLink) {
-                            let { count } = updatedLink;
-                            const newPercentage = Math.min(100, (count / target) * 100);
-                            const progressFill = processCard.querySelector('.process-progress-fill');
-                            const countElement = processCard.querySelector('.process-count');
-                            
-                            progressFill.style.width = `${newPercentage}%`;
-                            countElement.textContent = `${count}/${target}`;
-                            
-                            // Update overall progress
-                            updateOverallProgress(updateData);
-                        }
-                    }, 1000);
-                });
-                
-                // Set initial overall progress
-                updateOverallProgress(initialData);
-                
-            } catch (error) {
-                console.error(error);
-            }
-        }
-        
-        function updateOverallProgress(data) {
-            if (data.length === 0) return;
-            
-            let totalCount = 0;
-            let totalTarget = 0;
-            
-            data.forEach(link => {
-                totalCount += parseInt(link.count);
-                totalTarget += parseInt(link.target);
-            });
-            
-            const overallPercentage = Math.min(100, (totalCount / totalTarget) * 100);
-            document.querySelector('.progress-thumb').style.width = `${overallPercentage}%`;
-            document.querySelector('.progress-text').textContent = `${Math.round(overallPercentage)}%`;
-        }
-        
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            linkOfProcessing();
-        });
-    </script>
-</body>
-</html>
+                    processContainer.

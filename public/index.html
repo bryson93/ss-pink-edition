@@ -625,4 +625,83 @@
                 
                 const initialData = await initialResponse.json();
                 if (initialData.length === 0) {
-                    processContainer.
+                    processContainer.style.display = 'none';
+                    return;
+                }
+                
+                processContainer.style.display = 'block';
+                initialData.forEach((link, index) => {
+                    let { url, count, id, target, session } = link;
+                    const progressPercentage = Math.min(100, (count / target) * 100);
+                    
+                    const processCard = document.createElement('div');
+                    processCard.className = 'process-card';
+                    processCard.innerHTML = `
+                        <div class="process-info">
+                            <span class="process-id">ID: ${id}</span>
+                            <span class="process-count">${count}/${target}</span>
+                        </div>
+                        <div class="process-progress">
+                            <div class="process-progress-fill" style="width: ${progressPercentage}%"></div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(processCard);
+                    
+                    const intervalId = setInterval(async () => {
+                        const updateResponse = await fetch('/total');
+                        
+                        if (!updateResponse.ok) {
+                            console.error(`Failed to fetch update: ${updateResponse.status} - ${updateResponse.statusText}`);
+                            return;
+                        }
+                        
+                        const updateData = await updateResponse.json();
+                        const updatedLink = updateData.find((link) => link.session === session);
+                        
+                        if (updatedLink) {
+                            let { count } = updatedLink;
+                            const newPercentage = Math.min(100, (count / target) * 100);
+                            const progressFill = processCard.querySelector('.process-progress-fill');
+                            const countElement = processCard.querySelector('.process-count');
+                            
+                            progressFill.style.width = `${newPercentage}%`;
+                            countElement.textContent = `${count}/${target}`;
+                            
+                            // Update overall progress
+                            updateOverallProgress(updateData);
+                        }
+                    }, 1000);
+                });
+                
+                // Set initial overall progress
+                updateOverallProgress(initialData);
+                
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        function updateOverallProgress(data) {
+            if (data.length === 0) return;
+            
+            let totalCount = 0;
+            let totalTarget = 0;
+            
+            data.forEach(link => {
+                totalCount += parseInt(link.count);
+                totalTarget += parseInt(link.target);
+            });
+            
+            const overallPercentage = Math.min(100, (totalCount / totalTarget) * 100);
+            document.querySelector('.progress-thumb').style.width = `${overallPercentage}%`;
+            document.querySelector('.progress-text').textContent = `${Math.round(overallPercentage)}%`;
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            linkOfProcessing();
+        });
+    </script>
+</body>
+</html>
